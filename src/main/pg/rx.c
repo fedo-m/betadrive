@@ -123,7 +123,9 @@ void pgResetFn_rxConfig(rxConfig_t *rxConfig)
 #endif
     );
 
-#ifdef RX_CHANNELS_TAER
+#ifdef DEFAULT_RX_CHANNEL_MAP
+    parseRcChannels(DEFAULT_RX_CHANNEL_MAP, rxConfig);
+#elif defined(RX_CHANNELS_TAER)
     parseRcChannels("TAER1234", rxConfig);
 #else
     parseRcChannels("AETR1234", rxConfig);

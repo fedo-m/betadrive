@@ -233,7 +233,7 @@ static const char * const mixerNames[] = {
     "AIRPLANE", "HELI_120_CCPM", "HELI_90_DEG", "VTAIL4",
     "HEX6H", "PPM_TO_SERVO", "DUALCOPTER", "SINGLECOPTER",
     "ATAIL4", "CUSTOM", "CUSTOMAIRPLANE", "CUSTOMTRI", "QUADX1234",
-    "OCTOX8P", NULL
+    "OCTOX8P", "CAR", NULL
 };
 #endif
 
@@ -4307,22 +4307,17 @@ static void printMap(dumpFlags_t dumpMask, const rxConfig_t *rxConfig, const rxC
     bool equalsDefault = true;
     char buf[16];
     char bufDefault[16];
-    uint32_t i;
 
     headingStr = cliPrintSectionHeading(dumpMask, false, headingStr);
-    for (i = 0; i < RX_MAPPABLE_CHANNEL_COUNT; i++) {
-        buf[rxConfig->rcmap[i]] = rcChannelLetters[i];
-        if (defaultRxConfig) {
-            bufDefault[defaultRxConfig->rcmap[i]] = rcChannelLetters[i];
-            equalsDefault = equalsDefault && (rxConfig->rcmap[i] == defaultRxConfig->rcmap[i]);
-        }
+    formatRcChannels(rxConfig, buf);
+    if (defaultRxConfig) {
+        formatRcChannels(defaultRxConfig, bufDefault);
+        equalsDefault = memcmp(rxConfig->rcmap, defaultRxConfig->rcmap, RX_MAPPABLE_CHANNEL_COUNT) == 0;
     }
-    buf[i] = '\0';
 
     headingStr = cliPrintSectionHeading(dumpMask, !equalsDefault, headingStr);
     const char *formatMap = "map %s";
     if (defaultRxConfig) {
-        bufDefault[i] = '\0';
         cliDefaultPrintLinef(dumpMask, equalsDefault, formatMap, bufDefault);
     }
     cliDumpPrintLinef(dumpMask, equalsDefault, formatMap, buf);
@@ -4334,7 +4329,9 @@ RAM_CODE static void cliMap(const char *cmdName, char *cmdline)
     char buf[RX_MAPPABLE_CHANNEL_COUNT + 1];
 
     uint32_t len = strlen(cmdline);
-    if (len == RX_MAPPABLE_CHANNEL_COUNT) {
+    if (rcChannelsIsMapPreset(cmdline)) {
+        parseRcChannels(cmdline, rxConfigMutable());
+    } else if (len == RX_MAPPABLE_CHANNEL_COUNT) {
 
         for (i = 0; i < RX_MAPPABLE_CHANNEL_COUNT; i++) {
             buf[i] = toupper((unsigned char)cmdline[i]);
@@ -4344,7 +4341,13 @@ RAM_CODE static void cliMap(const char *cmdName, char *cmdline)
         for (i = 0; i < RX_MAPPABLE_CHANNEL_COUNT; i++) {
             buf[i] = toupper((unsigned char)cmdline[i]);
 
-            if (strchr(rcChannelLetters, buf[i]) && !strchr(buf + i + 1, buf[i]))
+            // S is an alias of A (roll) and may not be combined with it
+            const char letter = buf[i] == 'S' ? 'A' : buf[i];
+            bool duplicate = false;
+            for (uint32_t j = i + 1; j < RX_MAPPABLE_CHANNEL_COUNT; j++) {
+                duplicate = duplicate || (buf[j] == 'S' ? 'A' : buf[j]) == letter;
+            }
+            if (strchr(rcChannelLetters, letter) && !duplicate)
                 continue;
 
             cliShowParseError(cmdName);
@@ -4356,11 +4359,7 @@ RAM_CODE static void cliMap(const char *cmdName, char *cmdline)
         return;
     }
 
-    for (i = 0; i < RX_MAPPABLE_CHANNEL_COUNT; i++) {
-        buf[rxConfig()->rcmap[i]] = rcChannelLetters[i];
-    }
-
-    buf[i] = '\0';
+    formatRcChannels(rxConfig(), buf);
     cliPrintLinef("map %s", buf);
 }
 

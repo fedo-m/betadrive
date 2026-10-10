@@ -73,7 +73,7 @@
 static bool isUsingSticksToArm = true;
 static bool disarmUserRequested = false; // has the user requested a disarm, using either sticks or switches, whether armed or disarmed
 
-float rcCommand[4];           // interval [1000;2000] for THROTTLE and [-500;+500] for ROLL/PITCH/YAW
+float rcCommand[PRIMARY_CHANNEL_COUNT];           // interval [1000;2000] for THROTTLE and [-500;+500] for ROLL/PITCH/YAW
 
 PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 1);
 
@@ -92,13 +92,33 @@ PG_RESET_TEMPLATE(armingConfig_t, armingConfig,
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig, PG_MOTOR_3D_CONFIG, 0);
+
+#ifndef DEFAULT_3D_DEADBAND_LOW
+#define DEFAULT_3D_DEADBAND_LOW 1406
+#endif
+#ifndef DEFAULT_3D_DEADBAND_HIGH
+#define DEFAULT_3D_DEADBAND_HIGH 1514
+#endif
+#ifndef DEFAULT_3D_NEUTRAL
+#define DEFAULT_3D_NEUTRAL 1460
+#endif
+#ifndef DEFAULT_3D_DEADBAND_THROTTLE
+#define DEFAULT_3D_DEADBAND_THROTTLE 50
+#endif
+#ifndef DEFAULT_3D_LIMIT_LOW
+#define DEFAULT_3D_LIMIT_LOW 1000
+#endif
+#ifndef DEFAULT_3D_LIMIT_HIGH
+#define DEFAULT_3D_LIMIT_HIGH 2000
+#endif
+
 PG_RESET_TEMPLATE(flight3DConfig_t, flight3DConfig,
-    .deadband3d_low = 1406,
-    .deadband3d_high = 1514,
-    .neutral3d = 1460,
-    .deadband3d_throttle = 50,
-    .limit3d_low = 1000,
-    .limit3d_high = 2000,
+    .deadband3d_low = DEFAULT_3D_DEADBAND_LOW,
+    .deadband3d_high = DEFAULT_3D_DEADBAND_HIGH,
+    .neutral3d = DEFAULT_3D_NEUTRAL,
+    .deadband3d_throttle = DEFAULT_3D_DEADBAND_THROTTLE,
+    .limit3d_low = DEFAULT_3D_LIMIT_LOW,
+    .limit3d_high = DEFAULT_3D_LIMIT_HIGH,
     .switched_mode3d = false
 );
 
