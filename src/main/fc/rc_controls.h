@@ -83,7 +83,7 @@ typedef enum {
 // (Super) rates are constrained to [0, 100] for Betaflight rates, so values higher than 100 won't make a difference. Range extended for RaceFlight rates.
 #define CONTROL_RATE_CONFIG_RATE_MAX  255
 
-extern float rcCommand[4];
+extern float rcCommand[PRIMARY_CHANNEL_COUNT];
 
 typedef struct rcSmoothingFilter_s {
     pt3Filter_t filterSetpoint[PRIMARY_CHANNEL_COUNT];

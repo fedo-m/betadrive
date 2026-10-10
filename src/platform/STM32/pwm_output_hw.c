@@ -241,8 +241,14 @@ bool motorPwmDevInit(motorDevice_t *device, const motorDevConfig_t *motorConfig,
         const uint32_t clock = timerClock(timerHardware);
         /* used to find the desired timer frequency for max resolution */
         const unsigned prescaler = ((clock / pwmRateHz) + 0xffff) / 0x10000; /* rounding up */
-        const uint32_t hz = clock / prescaler;
-        const unsigned period = useContinuousUpdate ? hz / pwmRateHz : 0xffff;
+        uint32_t hz = clock / prescaler;
+        unsigned period = useContinuousUpdate ? hz / pwmRateHz : 0xffff;
+
+        // Standard PWM shares timers with servos, which always run a 1 MHz tick; use the same base so neither reconfiguration rescales the other's pulse.
+        if (motorConfig->motorProtocol == MOTOR_PROTOCOL_PWM && pwmRateHz >= PWM_TIMER_1MHZ / 0xffff + 1) {
+            hz = PWM_TIMER_1MHZ;
+            period = hz / pwmRateHz;
+        }
 
         /*
             if brushed then it is the entire length of the period.

@@ -397,7 +397,7 @@ static FAST_CODE_NOINLINE void updateFeedforwardFilters(const pidRuntime_t *pid)
 
 static FAST_CODE void processRcSmoothingFilter(void)
 {
-    static FAST_DATA_ZERO_INIT float rxDataToSmooth[4];
+    static FAST_DATA_ZERO_INIT float rxDataToSmooth[PRIMARY_CHANNEL_COUNT];
 
     if (isRxDataNew) {
         // Get new values to be smoothed

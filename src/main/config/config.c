@@ -221,6 +221,11 @@ static void validateAndFixConfig(void)
 
     mixerMode_e mixerMode = mixerConfigMutable()->mixerMode;
 
+    if (mixerMode < MIXER_TRI || mixerMode > MIXER_CAR) {
+        mixerMode = DEFAULT_MIXER;
+        mixerConfigMutable()->mixerMode = mixerMode;
+    }
+
     if (!(mixerMode == MIXER_CUSTOM || mixerMode == MIXER_CUSTOM_AIRPLANE || mixerMode == MIXER_CUSTOM_TRI)) {
         if (mixers[mixerMode].motorCount && mixers[mixerMode].motor == NULL)
             mixerConfigMutable()->mixerMode = MIXER_CUSTOM;
@@ -297,6 +302,25 @@ static void validateAndFixConfig(void)
             pidProfilesMutable(i)->vbat_sag_compensation = 0;
         }
 #endif
+    }
+
+    if (mixerConfig()->mixerMode == MIXER_CAR) {
+        featureEnableImmediate(FEATURE_3D);
+        featureDisableImmediate(FEATURE_AIRMODE | FEATURE_ANTI_GRAVITY | FEATURE_MOTOR_STOP);
+        motorConfigMutable()->dev.motorProtocol = MOTOR_PROTOCOL_PWM;
+        motorConfigMutable()->dev.motorPwmRate = 50;
+        motorConfigMutable()->dev.useContinuousUpdate = true;
+        flight3DConfigMutable()->limit3d_low = PWM_RANGE_MIN;
+        flight3DConfigMutable()->limit3d_high = PWM_RANGE_MAX;
+        flight3DConfigMutable()->switched_mode3d = false;
+
+        const uint16_t neutral = constrain(flight3DConfig()->neutral3d, PWM_RANGE_MIN, PWM_RANGE_MAX);
+        flight3DConfigMutable()->neutral3d = neutral;
+        flight3DConfigMutable()->deadband3d_low = neutral;
+        flight3DConfigMutable()->deadband3d_high = neutral;
+
+        // CAR implies the ST123456 layout; a stale map from another mixer would feed throttle from the wrong channel
+        parseRcChannels("ST123456", rxConfigMutable());
     }
 
     if (motorConfig()->dev.motorProtocol == MOTOR_PROTOCOL_BRUSHED) {

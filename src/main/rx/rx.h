@@ -209,6 +209,8 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs);
 struct rxConfig_s;
 
 void parseRcChannels(const char *input, struct rxConfig_s *rxConfig);
+bool rcChannelsIsMapPreset(const char *input);
+void formatRcChannels(const struct rxConfig_s *rxConfig, char *buf);
 
 #define RSSI_MAX_VALUE 1023
 

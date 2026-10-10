@@ -47,6 +47,7 @@
 
 #include "flight/alt_hold.h"
 #include "flight/autopilot.h"
+#include "flight/car.h"
 #include "flight/failsafe.h"
 #include "flight/gps_rescue.h"
 #include "flight/launch_wing.h"
@@ -683,8 +684,43 @@ static void applyMixerAdjustment(float *motorMix, const float motorMixMin, const
     throttle = constrainf(throttle, -normalizedMotorMixMin, 1.0f - normalizedMotorMixMax);
 }
 
+static bool drivePermitted = false;
+
+bool carIsDrivePermitted(void)
+{
+    return getMixerMode() == MIXER_CAR && drivePermitted;
+}
+
 FAST_CODE_NOINLINE_CRITICAL void mixTable(timeUs_t currentTimeUs)
 {
+    if (getMixerMode() == MIXER_CAR) {
+        const float neutral = flight3DConfig()->neutral3d;
+        // No ARM switch: drive is permitted by valid RX plus a stable neutral, independent of the ARMED flag.
+        const bool rxValid = !failsafeIsActive() && isRxReceivingSignal() && rxAreFlightChannelsValid();
+        // CAR uses the ST channel schema: steering is CH1 and throttle is CH2,
+        // both reached through the logical roll and throttle slots.
+        const bool throttleNeutral = abs((int)rcData[THROTTLE] - (int)rxConfig()->midrc) <= (int)flight3DConfig()->deadband3d_throttle;
+        const float idleOutput = ARMING_FLAG(ARMED) ? neutral : motor_disarmed[0];
+
+        if (carUpdateDrivePermission(&drivePermitted, rxValid, throttleNeutral) && !throttleNeutral) {
+            motor[0] = carMapThrottleToMotorOutput(rcData[THROTTLE], rxConfig()->midrc,
+                flight3DConfig()->deadband3d_throttle, flight3DConfig()->limit3d_low,
+                flight3DConfig()->neutral3d, flight3DConfig()->limit3d_high,
+                mixerConfig()->yaw_motors_reversed);
+        } else {
+            motor[0] = idleOutput;
+        }
+
+        const float outputRange = motor[0] < neutral
+            ? neutral - flight3DConfig()->limit3d_low
+            : flight3DConfig()->limit3d_high - neutral;
+        const float normalizedThrottle = fabsf(motor[0] - neutral) / MAX(1.0f, outputRange);
+        rcThrottle = normalizedThrottle;
+        mixerThrottle = normalizedThrottle;
+        motorMixRange = 0.0f;
+        return;
+    }
+
     const bool launchControlActive = isLaunchControlActive();
     const bool airmodeEnabled = isAirmodeEnabled() || launchControlActive;
 

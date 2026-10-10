@@ -410,7 +410,7 @@ bool getBoxIdState(boxId_e boxid)
     STATIC_ASSERT(ARRAYLEN(boxIdToFlightModeMap) == BOXID_FLIGHTMODE_LAST + 1, FLIGHT_MODE_BOXID_MAP_INITIALIZER_does_not_match_boxId_e);
 
     if (boxid == BOXARM) {
-        return ARMING_FLAG(ARMED);
+        return ARMING_FLAG(ARMED) || carIsDrivePermitted();
 #if defined(USE_WING) && defined(USE_LAUNCH_WING)
     } else if (boxid == BOXLAUNCH) {
         return FLIGHT_MODE(LAUNCH_MODE);

@@ -280,7 +280,9 @@ const mixer_t mixers[] = {
     { 3, true,  NULL },                // MIXER_CUSTOM_TRI
     { 4, false, mixerQuadX1234 },      // MIXER_QUADX_1234
     { 8, false, mixerOctoX8P },        // MIXER_OCTOX8P
+    { 1, true,  mixerSingleProp },      // MIXER_CAR
 };
+STATIC_ASSERT(ARRAYLEN(mixers) == MIXER_CAR + 1, mixer_table_must_match_mixer_mode_enum);
 #endif // !USE_QUAD_MIXER_ONLY
 
 FAST_DATA_ZERO_INIT mixerRuntime_t mixerRuntime;

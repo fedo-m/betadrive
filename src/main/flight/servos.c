@@ -140,6 +140,10 @@ static const servoMixer_t servoMixerTri[] = {
     { SERVO_RUDDER, INPUT_STABILIZED_YAW,   100, 0, 0, 100, 0 },
 };
 
+static const servoMixer_t servoMixerCar[] = {
+    { SERVO_RUDDER, INPUT_RC_ROLL, -100, 0, 0, 100, 0 },
+};
+
 #if defined(USE_UNCOMMON_MIXERS)
 static const servoMixer_t servoMixerBI[] = {
     { SERVO_BICOPTER_LEFT, INPUT_STABILIZED_YAW,   100, 0, 0, 100, 0 },
@@ -214,8 +218,11 @@ const mixerRules_t servoMixers[] = {
     { 0, NULL },                // MULTITYPE_CUSTOM
     { 0, NULL },                // MULTITYPE_CUSTOM_PLANE
     { 0, NULL },                // MULTITYPE_CUSTOM_TRI
-    { 0, NULL },
+    { 0, NULL },                // MULTITYPE_QUADX_1234
+    { 0, NULL },                // MULTITYPE_OCTOX8P
+    { COUNT_SERVO_RULES(servoMixerCar), servoMixerCar },      // MIXER_CAR
 };
+STATIC_ASSERT(ARRAYLEN(servoMixers) == MIXER_CAR + 1, servo_mixer_table_must_match_mixer_mode_enum);
 
 static int16_t determineServoMiddleOrForwardFromChannel(servoIndex_e servoIndex)
 {
@@ -385,6 +392,10 @@ void writeServos(void)
         for (int i = SERVO_PLANE_INDEX_MIN; i <= SERVO_PLANE_INDEX_MAX; i++) {
             writeServoWithTracking(servoIndex++, i);
         }
+        break;
+
+    case MIXER_CAR:
+        writeServoWithTracking(servoIndex++, SERVO_RUDDER);
         break;
 
 #ifdef USE_UNCOMMON_MIXERS

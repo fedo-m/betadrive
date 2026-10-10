@@ -63,7 +63,8 @@ typedef enum
     MIXER_CUSTOM_AIRPLANE = 24,
     MIXER_CUSTOM_TRI = 25,
     MIXER_QUADX_1234 = 26,
-    MIXER_OCTOX8P = 27
+    MIXER_OCTOX8P = 27,
+    MIXER_CAR = 28
 } mixerMode_e;
 
 typedef enum
@@ -137,6 +138,8 @@ void mixerResetDisarmedMotors(void);
 void mixTable(timeUs_t currentTimeUs);
 void stopMotors(void);
 void writeMotors(void);
+// CAR has no ARM switch: true once RX is valid and neutral was seen. Used to report an armed state to the DJI VTX over MSP.
+bool carIsDrivePermitted(void);
 
 bool mixerIsTricopter(void);
 

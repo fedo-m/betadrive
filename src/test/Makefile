@@ -89,6 +89,9 @@ arming_prevention_unittest_SRC := \
 arming_prevention_unittest_DEFINES := \
             USE_GPS_RESCUE=
 
+car_unittest_SRC := \
+		$(USER_DIR)/flight/car.c
+
 atomic_unittest_SRC := \
 		$(USER_DIR)/build/atomic.c \
 		$(TEST_DIR)/atomic_unittest_c.c
