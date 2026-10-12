@@ -4341,11 +4341,10 @@ RAM_CODE static void cliMap(const char *cmdName, char *cmdline)
         for (i = 0; i < RX_MAPPABLE_CHANNEL_COUNT; i++) {
             buf[i] = toupper((unsigned char)cmdline[i]);
 
-            // S is an alias of A (roll) and may not be combined with it
-            const char letter = buf[i] == 'S' ? 'A' : buf[i];
+            const char letter = buf[i];
             bool duplicate = false;
             for (uint32_t j = i + 1; j < RX_MAPPABLE_CHANNEL_COUNT; j++) {
-                duplicate = duplicate || (buf[j] == 'S' ? 'A' : buf[j]) == letter;
+                duplicate = duplicate || buf[j] == letter;
             }
             if (strchr(rcChannelLetters, letter) && !duplicate)
                 continue;

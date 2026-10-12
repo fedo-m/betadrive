@@ -77,6 +77,34 @@
 
 const char rcChannelLetters[] = "AERT12345678abcdefgh";
 
+static const char *const rcChannelLayoutSteeringNames[] = {
+    "ST123456",
+    "ST1234",
+    NULL,
+};
+
+static const char *const rcChannelLayoutAetrNames[] = {
+    "AETR1234",
+    NULL,
+};
+
+static const rcChannelLayout_t rcChannelLayouts[] = {
+    {
+        .name = "AETR1234",
+        .names = rcChannelLayoutAetrNames,
+        // ROLL, PITCH, YAW, THROTTLE, AUX1..AUX4
+        .rcmap = { 0, 1, 2, 3, 4, 5, 6, 7 },
+    },
+    {
+        .name = "ST123456",
+        .names = rcChannelLayoutSteeringNames,
+        // ROLL, PITCH, YAW, THROTTLE, AUX1..AUX4
+        .rcmap = { 0, 8, 9, 1, 2, 3, 4, 5 },
+    },
+};
+
+static const unsigned rcChannelLayoutCount = sizeof(rcChannelLayouts) / sizeof(rcChannelLayouts[0]);
+
 static uint16_t rssi = 0;                  // range: [0;1023]
 static uint16_t rssiRaw = 0;               // range: [0;1023]
 static timeUs_t lastRssiSmoothingUs = 0;
@@ -891,30 +919,39 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     return true;
 }
 
-// Preset for ground vehicles: S=steering (CH1), T=throttle (CH2), AUX1-4 on CH3-CH6, AUX5/AUX6 on CH7/CH8.
-// The unused pitch/yaw functions are moved to receiver CH9/CH10, and readRxChannelsApplyRanges() gives the freed CH7/CH8 to AUX5/AUX6.
-#define RC_MAP_STEERING_THROTTLE "ST123456"
-#define RC_MAP_STEERING_THROTTLE_SHORT "ST1234"
-#define RC_MAP_STEERING_THROTTLE_PITCH_CH 8
-#define RC_MAP_STEERING_THROTTLE_YAW_CH 9
+// Named channel layouts are kept separate from the legacy rcChannelLetters
+// alphabet. Ground-vehicle layouts keep steering and throttle on the first
+// two receiver channels; their unused pitch/yaw functions are moved to CH9/
+// CH10, and readRxChannelsApplyRanges() gives the freed CH7/CH8 to AUX5/6.
+const rcChannelLayout_t *rcChannelLayoutFind(const char *input)
+{
+    for (unsigned layoutIndex = 0; layoutIndex < rcChannelLayoutCount; layoutIndex++) {
+        const rcChannelLayout_t *layout = &rcChannelLayouts[layoutIndex];
+        for (const char *const *name = layout->names; *name; name++) {
+            if (strcasecmp(input, *name) == 0) {
+                return layout;
+            }
+        }
+    }
+
+    return NULL;
+}
 
 bool rcChannelsIsMapPreset(const char *input)
 {
-    return strcasecmp(input, RC_MAP_STEERING_THROTTLE) == 0 || strcasecmp(input, RC_MAP_STEERING_THROTTLE_SHORT) == 0;
+    return rcChannelLayoutFind(input) != NULL;
 }
 
 void parseRcChannels(const char *input, rxConfig_t *rxConfig)
 {
-    if (rcChannelsIsMapPreset(input)) {
-        parseRcChannels("ST1234ER", rxConfig);
-        rxConfig->rcmap[PITCH] = RC_MAP_STEERING_THROTTLE_PITCH_CH;
-        rxConfig->rcmap[YAW] = RC_MAP_STEERING_THROTTLE_YAW_CH;
+    const rcChannelLayout_t *layout = rcChannelLayoutFind(input);
+    if (layout) {
+        memcpy(rxConfig->rcmap, layout->rcmap, sizeof(rxConfig->rcmap));
         return;
     }
 
     for (const char *c = input; *c; c++) {
-        // S (steering) is the ground-vehicle name for the roll function
-        const char letter = (toupper((unsigned char)*c) == 'S') ? 'A' : *c;
+        const char letter = *c;
         const char *s = strchr(rcChannelLetters, letter);
         if (s && (s < rcChannelLetters + RX_MAPPABLE_CHANNEL_COUNT)) {
             rxConfig->rcmap[s - rcChannelLetters] = c - input;
@@ -925,12 +962,12 @@ void parseRcChannels(const char *input, rxConfig_t *rxConfig)
 // Writes the map as an 8 letter string, or the ST123456 preset when it matches it. buf needs 9 bytes.
 void formatRcChannels(const rxConfig_t *rxConfig, char *buf)
 {
-    rxConfig_t preset = *rxConfig;
-    parseRcChannels(RC_MAP_STEERING_THROTTLE, &preset);
-
-    if (memcmp(preset.rcmap, rxConfig->rcmap, RX_MAPPABLE_CHANNEL_COUNT) == 0) {
-        strcpy(buf, RC_MAP_STEERING_THROTTLE);
-        return;
+    for (unsigned layoutIndex = 0; layoutIndex < rcChannelLayoutCount; layoutIndex++) {
+        const rcChannelLayout_t *layout = &rcChannelLayouts[layoutIndex];
+        if (memcmp(layout->rcmap, rxConfig->rcmap, sizeof(rxConfig->rcmap)) == 0) {
+            strcpy(buf, layout->name);
+            return;
+        }
     }
 
     for (unsigned i = 0; i < RX_MAPPABLE_CHANNEL_COUNT; i++) {
@@ -1159,4 +1196,3 @@ bool isRssiConfigured(void)
 {
     return rssiSource != RSSI_SOURCE_NONE;
 }
-

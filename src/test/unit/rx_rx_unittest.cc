@@ -58,6 +58,37 @@ extern "C" {
 
 #define DE_ACTIVATE_ALL_BOXES   0
 
+TEST(RxTest, ChannelLayoutPresets)
+{
+    rxConfig_t config = {};
+    char formatted[RX_MAPPABLE_CHANNEL_COUNT + 1];
+
+    EXPECT_TRUE(rcChannelsIsMapPreset("AETR1234"));
+    EXPECT_TRUE(rcChannelsIsMapPreset("ST123456"));
+    EXPECT_TRUE(rcChannelsIsMapPreset("st1234"));
+    EXPECT_FALSE(rcChannelsIsMapPreset("S1234567"));
+
+    parseRcChannels("ST123456", &config);
+    EXPECT_EQ(0, config.rcmap[ROLL]);
+    EXPECT_EQ(8, config.rcmap[PITCH]);
+    EXPECT_EQ(9, config.rcmap[YAW]);
+    EXPECT_EQ(1, config.rcmap[THROTTLE]);
+    EXPECT_EQ(2, config.rcmap[AUX1]);
+    EXPECT_EQ(5, config.rcmap[AUX4]);
+
+    formatRcChannels(&config, formatted);
+    EXPECT_STREQ("ST123456", formatted);
+
+    parseRcChannels("AETR1234", &config);
+    EXPECT_EQ(0, config.rcmap[ROLL]);
+    EXPECT_EQ(1, config.rcmap[PITCH]);
+    EXPECT_EQ(2, config.rcmap[YAW]);
+    EXPECT_EQ(3, config.rcmap[THROTTLE]);
+
+    formatRcChannels(&config, formatted);
+    EXPECT_STREQ("AETR1234", formatted);
+}
+
 typedef struct testData_s {
     bool isPPMDataBeingReceived;
     bool isPWMDataBeingReceived;

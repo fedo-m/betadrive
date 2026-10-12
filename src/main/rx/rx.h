@@ -85,6 +85,12 @@ typedef enum {
 
 extern const char rcChannelLetters[];
 
+typedef struct rcChannelLayout_s {
+    const char *name;
+    const char *const *names;
+    uint8_t rcmap[RX_MAPPABLE_CHANNEL_COUNT];
+} rcChannelLayout_t;
+
 extern float rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];       // interval [1000;2000]
 
 #define RSSI_SCALE_MIN 1
@@ -190,6 +196,7 @@ struct rxConfig_s;
 
 void parseRcChannels(const char *input, struct rxConfig_s *rxConfig);
 bool rcChannelsIsMapPreset(const char *input);
+const rcChannelLayout_t *rcChannelLayoutFind(const char *input);
 void formatRcChannels(const struct rxConfig_s *rxConfig, char *buf);
 
 #define RSSI_MAX_VALUE 1023
