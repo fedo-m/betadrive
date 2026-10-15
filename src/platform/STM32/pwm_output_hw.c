@@ -281,11 +281,33 @@ pwmOutputPort_t *pwmGetMotors(void)
 
 #ifdef USE_SERVOS
 static pwmOutputPort_t servos[MAX_SUPPORTED_SERVOS];
+static uint16_t servoTestValues[MAX_SUPPORTED_SERVOS];
+static uint32_t servoTestMask;
+static timeMs_t servoTestLastUpdate;
+
+void servoSetTestOutputs(const uint16_t *values, uint8_t count)
+{
+    servoTestMask = 0;
+    for (uint8_t index = 0; index < count && index < MAX_SUPPORTED_SERVOS; index++) {
+        servoTestValues[index] = values[index];
+        servoTestMask |= (1U << index);
+    }
+    servoTestLastUpdate = millis();
+}
+
+void servoClearTestOutputs(void)
+{
+    servoTestMask = 0;
+}
 
 void servoWrite(uint8_t index, float value)
 {
+    if (servoTestMask && (millis() - servoTestLastUpdate > 1000)) {
+        servoTestMask = 0;
+    }
+
     if (index < MAX_SUPPORTED_SERVOS && servos[index].channel.ccr) {
-        *servos[index].channel.ccr = lrintf(value);
+        *servos[index].channel.ccr = lrintf((servoTestMask & (1U << index)) ? servoTestValues[index] : value);
     }
 }
 

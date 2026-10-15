@@ -143,6 +143,7 @@ int servoDirection(int servoIndex, int fromChannel);
 void servosInit(void);
 void servosFilterInit(void);
 void servoMixer(void);
+const char *servoResourceLabel(ioTag_t ioTag);
 // tricopter specific
 void servosTricopterInit(void);
 void servosTricopterMixer(void);

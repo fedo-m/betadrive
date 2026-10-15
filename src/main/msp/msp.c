@@ -60,12 +60,14 @@
 #include "drivers/dshot_command.h"
 #include "drivers/flash/flash.h"
 #include "drivers/io.h"
+#include "drivers/io_impl.h"
 #include "drivers/motor.h"
 #include "drivers/osd.h"
 #include "drivers/pwm_output.h"
 #include "drivers/sdcard.h"
 #include "drivers/serial.h"
 #include "drivers/serial_escserial.h"
+#include "drivers/servo_impl.h"
 #include "drivers/system.h"
 #include "drivers/transponder_ir.h"
 #include "drivers/usb_msc.h"
@@ -804,6 +806,26 @@ RAM_CODE static bool mspCommonProcessOutCommand(mspDescriptor_t srcDesc, int16_t
 
         break;
     }
+
+    case MSP2_BETADRIVE_GET_SERVO_RESOURCES:
+#if defined(USE_SERVOS)
+        sbufWriteU8(dst, MAX_SUPPORTED_SERVOS);
+        for (uint8_t index = 0; index < MAX_SUPPORTED_SERVOS; index++) {
+            const ioTag_t ioTag = servoConfig()->dev.ioTags[index];
+            sbufWriteU8(dst, index + 1);
+            if (ioTag) {
+                sbufWriteU8(dst, IO_GPIOPortIdxByTag(ioTag));
+                sbufWriteU8(dst, IO_GPIOPinIdxByTag(ioTag));
+            } else {
+                sbufWriteU8(dst, 0xff);
+                sbufWriteU8(dst, 0xff);
+            }
+            sbufWritePString(dst, servoResourceLabel(ioTag));
+        }
+#else
+        sbufWriteU8(dst, 0);
+#endif
+        break;
 
     case MSP_BUILD_INFO:
         sbufWriteData(dst, buildDate, BUILD_DATE_LENGTH);
@@ -3311,6 +3333,37 @@ RAM_CODE static mspResult_e mspProcessInCommand(mspDescriptor_t srcDesc, int16_t
         for (int i = 0; i < getMotorCount(); i++) {
             motor_disarmed[i] = motorConvertFromExternal(sbufReadU16(src));
         }
+        break;
+
+    case MSP2_BETADRIVE_SET_SERVO_OUTPUT:
+#if defined(USE_SERVOS) && defined(USE_PWM_OUTPUT) && defined(STM32F4)
+        {
+            if (ARMING_FLAG(ARMED) || dataSize < 1) {
+                return MSP_RESULT_ERROR;
+            }
+
+            const uint8_t count = sbufReadU8(src);
+            if (count > MAX_SUPPORTED_SERVOS || sbufBytesRemaining(src) != count * (int)sizeof(uint16_t)) {
+                return MSP_RESULT_ERROR;
+            }
+
+            uint16_t values[MAX_SUPPORTED_SERVOS];
+            for (uint8_t index = 0; index < count; index++) {
+                values[index] = sbufReadU16(src);
+                if (values[index] < PWM_SERVO_MIN || values[index] > PWM_SERVO_MAX) {
+                    return MSP_RESULT_ERROR;
+                }
+            }
+
+            if (count == 0) {
+                servoClearTestOutputs();
+            } else {
+                servoSetTestOutputs(values, count);
+            }
+        }
+#else
+        return MSP_RESULT_ERROR;
+#endif
         break;
 
     case MSP_SET_SERVO_CONFIGURATION:

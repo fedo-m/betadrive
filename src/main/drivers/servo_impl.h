@@ -40,3 +40,5 @@ typedef struct servoDevConfig_s {
 
 void servoDevInit(const servoDevConfig_t *servoDevConfig);
 void servoWrite(uint8_t index, float value);
+void servoSetTestOutputs(const uint16_t *values, uint8_t count);
+void servoClearTestOutputs(void);

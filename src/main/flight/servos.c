@@ -91,6 +91,51 @@ void pgResetFn_servoConfig(servoConfig_t *servoConfig)
 #endif
 }
 
+const char *servoResourceLabel(ioTag_t ioTag)
+{
+#if defined(SERVO1_PIN) && defined(SERVO1_LABEL)
+    if (ioTag == IO_TAG(SERVO1_PIN)) {
+        return SERVO1_LABEL;
+    }
+#endif
+#if defined(SERVO2_PIN) && defined(SERVO2_LABEL)
+    if (ioTag == IO_TAG(SERVO2_PIN)) {
+        return SERVO2_LABEL;
+    }
+#endif
+#if defined(SERVO3_PIN) && defined(SERVO3_LABEL)
+    if (ioTag == IO_TAG(SERVO3_PIN)) {
+        return SERVO3_LABEL;
+    }
+#endif
+#if defined(SERVO4_PIN) && defined(SERVO4_LABEL)
+    if (ioTag == IO_TAG(SERVO4_PIN)) {
+        return SERVO4_LABEL;
+    }
+#endif
+#if defined(SERVO5_PIN) && defined(SERVO5_LABEL)
+    if (ioTag == IO_TAG(SERVO5_PIN)) {
+        return SERVO5_LABEL;
+    }
+#endif
+#if defined(SERVO6_PIN) && defined(SERVO6_LABEL)
+    if (ioTag == IO_TAG(SERVO6_PIN)) {
+        return SERVO6_LABEL;
+    }
+#endif
+#if defined(SERVO7_PIN) && defined(SERVO7_LABEL)
+    if (ioTag == IO_TAG(SERVO7_PIN)) {
+        return SERVO7_LABEL;
+    }
+#endif
+#if defined(SERVO8_PIN) && defined(SERVO8_LABEL)
+    if (ioTag == IO_TAG(SERVO8_PIN)) {
+        return SERVO8_LABEL;
+    }
+#endif
+    return "";
+}
+
 PG_REGISTER_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers, PG_SERVO_MIXER, 0);
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams, PG_SERVO_PARAMS, 0);
