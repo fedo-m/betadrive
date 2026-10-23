@@ -687,7 +687,10 @@ FAST_CODE_NOINLINE_CRITICAL void mixTable(timeUs_t currentTimeUs)
     if (getMixerMode() == MIXER_CAR) {
         const float neutral = flight3DConfig()->neutral3d;
         // No ARM switch: drive is permitted by valid RX plus a stable neutral, independent of the ARMED flag.
-        const bool rxValid = !failsafeIsActive() && isRxReceivingSignal() && rxAreFlightChannelsValid();
+        // CAR drive permission depends on the receiver link and drive throttle only.
+        // Steering is deliberately excluded: it may be moved while the vehicle is
+        // stationary and must not affect the DJI arm/power indication.
+        const bool rxValid = !failsafeIsActive() && isRxReceivingSignal();
         // CAR uses the ST channel schema: steering is CH1 and throttle is CH2,
         // both reached through the logical roll and throttle slots.
         const bool throttleNeutral = abs((int)rcData[THROTTLE] - (int)rxConfig()->midrc) <= (int)flight3DConfig()->deadband3d_throttle;
