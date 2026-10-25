@@ -387,7 +387,7 @@ if (crashFlipModeActive) {
             unsetArmingDisabled(ARMING_DISABLED_THROTTLE);
         }
 
-        if (!isUpright() && !IS_RC_MODE_ACTIVE(BOXCRASHFLIP)) {
+        if (getMixerMode() != MIXER_CAR && !isUpright() && !IS_RC_MODE_ACTIVE(BOXCRASHFLIP)) {
             setArmingDisabled(ARMING_DISABLED_ANGLE);
         } else {
             unsetArmingDisabled(ARMING_DISABLED_ANGLE);

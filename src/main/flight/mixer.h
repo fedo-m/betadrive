@@ -138,7 +138,8 @@ void mixerResetDisarmedMotors(void);
 void mixTable(timeUs_t currentTimeUs);
 void stopMotors(void);
 void writeMotors(void);
-// CAR has no ARM switch: true once RX is valid and neutral was seen. Used to report an armed state to the DJI VTX over MSP.
+// CAR has no required ARM switch: true once RX is valid and neutral was seen.
+// The RX arming state machine uses this as an automatic arm request.
 bool carIsDrivePermitted(void);
 
 bool mixerIsTricopter(void);

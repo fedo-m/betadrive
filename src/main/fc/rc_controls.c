@@ -45,6 +45,7 @@
 
 #include "flight/pid.h"
 #include "flight/failsafe.h"
+#include "flight/mixer.h"
 
 #include "io/beeper.h"
 #include "io/usb_cdc_hid.h"
@@ -197,21 +198,27 @@ void processRcStickPositions(void)
 
     // perform actions
     if (!isUsingSticksToArm) {
-        if (IS_RC_MODE_ACTIVE(BOXARM)) {
+        const bool carArmRequested = carIsDrivePermitted();
+        const bool armRequested = IS_RC_MODE_ACTIVE(BOXARM) || carArmRequested;
+
+        if (armRequested) {
             rcDisarmTicks = 0;
-            // Arming via ARM BOX
+            // Arming via ARM BOX, or automatically when a CAR has acquired a
+            // valid receiver link with its drive channel at neutral.
             tryArm();
         } else {
             resetTryingToArm();
-            // Disarming via ARM BOX
-              disarmUserRequested = true;
+            // Disarming via ARM BOX or loss of CAR drive permission.
+            disarmUserRequested = !carArmRequested && getMixerMode() != MIXER_CAR;
             resetArmingDisabled();
             const bool boxFailsafeSwitchIsOn = IS_RC_MODE_ACTIVE(BOXFAILSAFE);
-            if (ARMING_FLAG(ARMED) && (failsafeIsReceivingRxData() || boxFailsafeSwitchIsOn)) {
+            if (ARMING_FLAG(ARMED) && (getMixerMode() == MIXER_CAR || failsafeIsReceivingRxData() || boxFailsafeSwitchIsOn)) {
                 // in a true signal loss situation, allow disarm only once we regain validated RxData (failsafeIsReceivingRxData = true),
                 // to avoid potentially false disarm signals soon after link recover
                 // Note that BOXFAILSAFE will also drive failsafeIsReceivingRxData false (immediately at start or end)
                 // That's why we explicitly allow disarm here if BOXFAILSAFE switch is active
+                // CAR is different: receiver loss revokes drive permission and
+                // must disarm immediately rather than waiting for recovery.
                 // Note that BOXGPSRESCUE mode does not trigger failsafe - we can always disarm in that mode
                 rcDisarmTicks++;
                 if (rcDisarmTicks > 3) {
