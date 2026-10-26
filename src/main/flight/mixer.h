@@ -138,9 +138,10 @@ void mixerResetDisarmedMotors(void);
 void mixTable(timeUs_t currentTimeUs);
 void stopMotors(void);
 void writeMotors(void);
-// CAR has no required ARM switch: true once RX is valid and neutral was seen.
-// The RX arming state machine uses this as an automatic arm request.
+// CAR drive-output interlock: true once RX is valid and neutral was seen.
 bool carIsDrivePermitted(void);
+void carUpdateArmState(timeUs_t currentTimeUs);
+bool carIsArmRequested(void);
 
 bool mixerIsTricopter(void);
 
@@ -148,6 +149,7 @@ void mixerSetThrottleAngleCorrection(int correctionValue);
 float mixerGetThrottle(void);
 float mixerGetRcThrottle(void);
 mixerMode_e getMixerMode(void);
+bool isMixerEqCar(void);
 bool mixerModeIsFixedWing(mixerMode_e mixerMode);
 bool isFixedWing(void);
 

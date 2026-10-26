@@ -198,21 +198,17 @@ void processRcStickPositions(void)
 
     // perform actions
     if (!isUsingSticksToArm) {
-        const bool carArmRequested = carIsDrivePermitted();
-        const bool armRequested = IS_RC_MODE_ACTIVE(BOXARM) || carArmRequested;
-
-        if (armRequested) {
+        if (IS_RC_MODE_ACTIVE(BOXARM)) {
             rcDisarmTicks = 0;
-            // Arming via ARM BOX, or automatically when a CAR has acquired a
-            // valid receiver link with its drive channel at neutral.
+            // For CAR, throttle activity automatically requests BOXARM.
             tryArm();
         } else {
             resetTryingToArm();
-            // Disarming via ARM BOX or loss of CAR drive permission.
-            disarmUserRequested = !carArmRequested && getMixerMode() != MIXER_CAR;
+            // Disarming via ARM BOX, CAR idle timeout, or CAR receiver loss.
+            disarmUserRequested = !isMixerEqCar();
             resetArmingDisabled();
             const bool boxFailsafeSwitchIsOn = IS_RC_MODE_ACTIVE(BOXFAILSAFE);
-            if (ARMING_FLAG(ARMED) && (getMixerMode() == MIXER_CAR || failsafeIsReceivingRxData() || boxFailsafeSwitchIsOn)) {
+            if (ARMING_FLAG(ARMED) && (isMixerEqCar() || failsafeIsReceivingRxData() || boxFailsafeSwitchIsOn)) {
                 // in a true signal loss situation, allow disarm only once we regain validated RxData (failsafeIsReceivingRxData = true),
                 // to avoid potentially false disarm signals soon after link recover
                 // Note that BOXFAILSAFE will also drive failsafeIsReceivingRxData false (immediately at start or end)
@@ -455,7 +451,11 @@ void processRcStickPositions(void)
 void rcControlsInit(void)
 {
     analyzeModeActivationConditions();
-    isUsingSticksToArm = !isModeActivationConditionPresent(BOXARM) && systemConfig()->enableStickArming;
+    // CAR synthesizes BOXARM from throttle activity, so it always uses the
+    // switch-arming state machine even when no ARM range is configured.
+    isUsingSticksToArm = !isMixerEqCar()
+        && !isModeActivationConditionPresent(BOXARM)
+        && systemConfig()->enableStickArming;
     // Mode ranges change live over MSP, so any task gated on a mode being assigned has to
     // be re-evaluated here rather than only at boot. Safe before tasksInit(), which starts
     // by clearing the scheduler queue and re-enabling everything.

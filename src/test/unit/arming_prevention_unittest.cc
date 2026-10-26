@@ -1067,6 +1067,9 @@ extern "C" {
     uint32_t micros(void) { return simulationTime; }
     uint32_t millis(void) { return micros() / 1000; }
     bool isRxReceivingSignal(void) { return simulationHaveRx; }
+    bool isMixerEqCar(void) { return false; }
+    bool carIsArmRequested(void) { return false; }
+    void carUpdateArmState(timeUs_t) {}
 
     bool featureIsEnabled(uint32_t f) { return simulationFeatureFlags & f; }
     void warningLedFlash(void) {}

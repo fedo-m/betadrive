@@ -36,6 +36,8 @@
 
 #include "fc/rc_controls.h"
 
+#include "flight/mixer.h"
+
 #include "io/piniobox.h"
 
 #include "pg/pg.h"
@@ -64,7 +66,15 @@ PG_REGISTER(modeActivationConfig_t, modeActivationConfig, PG_MODE_ACTIVATION_CON
 
 bool IS_RC_MODE_ACTIVE(boxId_e boxId)
 {
-    return bitArrayGet(&rcModeActivationMask, boxId);
+    const bool rcSwitchActive = bitArrayGet(&rcModeActivationMask, boxId);
+
+    // CAR automatically requests ARM while driving and for ten seconds after
+    // returning to neutral. A configured ARM switch remains an additional source.
+    if (boxId == BOXARM && isMixerEqCar()) {
+        return carIsArmRequested() || rcSwitchActive;
+    }
+
+    return rcSwitchActive;
 }
 
 void rcModeUpdate(const boxBitmask_t *newState)

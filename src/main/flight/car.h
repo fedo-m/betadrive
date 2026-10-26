@@ -23,8 +23,21 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "common/time.h"
+
+typedef struct carArmState_s {
+    bool requested;
+    bool neutralTimerActive;
+    timeUs_t neutralSince;
+} carArmState_t;
+
 float carMapThrottleToMotorOutput(uint16_t throttleInput, uint16_t inputCenter, uint16_t inputDeadband,
     uint16_t outputLow, uint16_t outputNeutral, uint16_t outputHigh, bool reversed);
 
 // Drive is allowed once RX is valid and the throttle has been seen at neutral; revoked when RX is invalid.
 bool carUpdateDrivePermission(bool *permitted, bool rxValid, bool throttleNeutral);
+
+// Throttle activity requests ARM. Neutral retains the request for idleDelayUs;
+// an invalid RX link clears it immediately.
+bool carUpdateArmRequest(carArmState_t *state, timeUs_t currentTimeUs, bool rxValid,
+    bool throttleNeutral, timeDelta_t idleDelayUs);

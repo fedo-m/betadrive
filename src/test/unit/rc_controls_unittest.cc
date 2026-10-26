@@ -750,6 +750,8 @@ void dashboardEnablePageCycling() {}
 bool failsafeIsActive() { return false; }
 bool isRxReceivingSignal() { return true; }
 bool failsafeIsReceivingRxData() { return true; }
+bool isMixerEqCar() { return false; }
+bool carIsArmRequested() { return false; }
 
 uint8_t getCurrentControlRateProfileIndex(void)
 {

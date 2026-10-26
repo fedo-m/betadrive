@@ -676,18 +676,37 @@ static void applyMixerAdjustment(float *motorMix, const float motorMixMin, const
 }
 
 static bool drivePermitted = false;
+static carArmState_t carArmState;
+
+#define CAR_ARM_IDLE_TIMEOUT_US (10 * 1000 * 1000)
 
 bool carIsDrivePermitted(void)
 {
-    return getMixerMode() == MIXER_CAR && drivePermitted;
+    return isMixerEqCar() && drivePermitted;
+}
+
+void carUpdateArmState(timeUs_t currentTimeUs)
+{
+    if (!isMixerEqCar()) {
+        return;
+    }
+
+    const bool rxValid = !failsafeIsActive() && isRxReceivingSignal();
+    const bool throttleNeutral = abs((int)rcData[THROTTLE] - (int)rxConfig()->midrc) <= (int)flight3DConfig()->deadband3d_throttle;
+    carUpdateArmRequest(&carArmState, currentTimeUs, rxValid, throttleNeutral, CAR_ARM_IDLE_TIMEOUT_US);
+}
+
+bool carIsArmRequested(void)
+{
+    return isMixerEqCar() && carArmState.requested;
 }
 
 FAST_CODE_NOINLINE_CRITICAL void mixTable(timeUs_t currentTimeUs)
 {
-    if (getMixerMode() == MIXER_CAR) {
+    if (isMixerEqCar()) {
         const float neutral = flight3DConfig()->neutral3d;
-        // No ARM switch: drive is permitted by valid RX plus a stable neutral, independent of the ARMED flag.
-        // CAR drive permission depends on the receiver link and drive throttle only.
+        // Drive permission is latched by valid RX plus a stable neutral; actual
+        // motor output additionally requires the CAR arming state machine.
         // Steering is deliberately excluded: it may be moved while the vehicle is
         // stationary and must not affect the DJI arm/power indication.
         const bool rxValid = !failsafeIsActive() && isRxReceivingSignal();
@@ -696,7 +715,8 @@ FAST_CODE_NOINLINE_CRITICAL void mixTable(timeUs_t currentTimeUs)
         const bool throttleNeutral = abs((int)rcData[THROTTLE] - (int)rxConfig()->midrc) <= (int)flight3DConfig()->deadband3d_throttle;
         const float idleOutput = ARMING_FLAG(ARMED) ? neutral : motor_disarmed[0];
 
-        if (carUpdateDrivePermission(&drivePermitted, rxValid, throttleNeutral) && !throttleNeutral) {
+        const bool driveAllowed = carUpdateDrivePermission(&drivePermitted, rxValid, throttleNeutral);
+        if (ARMING_FLAG(ARMED) && driveAllowed && !throttleNeutral) {
             motor[0] = carMapThrottleToMotorOutput(rcData[THROTTLE], rxConfig()->midrc,
                 flight3DConfig()->deadband3d_throttle, flight3DConfig()->limit3d_low,
                 flight3DConfig()->neutral3d, flight3DConfig()->limit3d_high,

@@ -61,3 +61,35 @@ TEST(CarMixerTest, DrivePermissionRequiresNeutralAndIsRevokedOnRxLoss)
     EXPECT_FALSE(carUpdateDrivePermission(&permitted, true, false));
     EXPECT_TRUE(carUpdateDrivePermission(&permitted, true, true));
 }
+
+TEST(CarMixerTest, ArmRequestPersistsForTenSecondsAtNeutral)
+{
+    carArmState_t state = {};
+    constexpr timeDelta_t idleDelayUs = 10 * 1000 * 1000;
+
+    EXPECT_FALSE(carUpdateArmRequest(&state, 1000, true, true, idleDelayUs));
+    EXPECT_TRUE(carUpdateArmRequest(&state, 2000, true, false, idleDelayUs));
+    EXPECT_TRUE(carUpdateArmRequest(&state, 3000, true, true, idleDelayUs));
+    EXPECT_TRUE(carUpdateArmRequest(&state, 3000 + idleDelayUs - 1, true, true, idleDelayUs));
+    EXPECT_FALSE(carUpdateArmRequest(&state, 3000 + idleDelayUs, true, true, idleDelayUs));
+}
+
+TEST(CarMixerTest, ThrottleRearmsAfterIdleTimeout)
+{
+    carArmState_t state = {};
+    constexpr timeDelta_t idleDelayUs = 10 * 1000 * 1000;
+
+    EXPECT_TRUE(carUpdateArmRequest(&state, 1000, true, false, idleDelayUs));
+    EXPECT_TRUE(carUpdateArmRequest(&state, 2000, true, true, idleDelayUs));
+    EXPECT_FALSE(carUpdateArmRequest(&state, 2000 + idleDelayUs, true, true, idleDelayUs));
+    EXPECT_TRUE(carUpdateArmRequest(&state, 2001 + idleDelayUs, true, false, idleDelayUs));
+}
+
+TEST(CarMixerTest, RxLossClearsArmRequestImmediately)
+{
+    carArmState_t state = {};
+    constexpr timeDelta_t idleDelayUs = 10 * 1000 * 1000;
+
+    EXPECT_TRUE(carUpdateArmRequest(&state, 1000, true, false, idleDelayUs));
+    EXPECT_FALSE(carUpdateArmRequest(&state, 2000, false, false, idleDelayUs));
+}

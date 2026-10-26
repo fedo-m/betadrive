@@ -304,7 +304,7 @@ static void validateAndFixConfig(void)
 #endif
     }
 
-    if (mixerConfig()->mixerMode == MIXER_CAR) {
+    if (isMixerEqCar()) {
         featureEnableImmediate(FEATURE_3D);
         featureDisableImmediate(FEATURE_AIRMODE | FEATURE_ANTI_GRAVITY | FEATURE_MOTOR_STOP);
         motorConfigMutable()->dev.motorProtocol = MOTOR_PROTOCOL_PWM;

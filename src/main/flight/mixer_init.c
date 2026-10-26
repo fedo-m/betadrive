@@ -517,6 +517,13 @@ mixerMode_e getMixerMode(void)
     return currentMixerMode;
 }
 
+bool isMixerEqCar(void)
+{
+    // Use the configured mixer so this also works while configuration is being
+    // activated, before mixerInit() has assigned currentMixerMode.
+    return mixerConfig()->mixerMode == MIXER_CAR;
+}
+
 bool mixerModeIsFixedWing(mixerMode_e mixerMode)
 {
     switch (mixerMode) {

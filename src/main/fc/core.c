@@ -329,8 +329,9 @@ if (crashFlipModeActive) {
         if (graceTimeElapsed) {
             unsetArmingDisabled(ARMING_DISABLED_BOOT_GRACE_TIME);
         }
-        // If switch is used for arming then check it is not defaulting to on when the RX link recovers from a fault
-        if (!isUsingSticksForArming()) {
+        // If switch is used for arming then check it is not defaulting to on when the RX link recovers from a fault.
+        // CAR deliberately uses its throttle-driven automatic arm request.
+        if (!isUsingSticksForArming() && !isMixerEqCar()) {
             static bool hadRx = false;
             const bool haveRx = isRxReceivingSignal();
 
@@ -387,7 +388,7 @@ if (crashFlipModeActive) {
             unsetArmingDisabled(ARMING_DISABLED_THROTTLE);
         }
 
-        if (getMixerMode() != MIXER_CAR && !isUpright() && !IS_RC_MODE_ACTIVE(BOXCRASHFLIP)) {
+        if (!isMixerEqCar() && !isUpright() && !IS_RC_MODE_ACTIVE(BOXCRASHFLIP)) {
             setArmingDisabled(ARMING_DISABLED_ANGLE);
         } else {
             unsetArmingDisabled(ARMING_DISABLED_ANGLE);
@@ -464,7 +465,7 @@ if (crashFlipModeActive) {
             setArmingDisabled(ARMING_DISABLED_MOTOR_PROTOCOL);
         }
 
-        if (!isUsingSticksForArming()) {
+        if (!isUsingSticksForArming() && !isMixerEqCar()) {
             if (!IS_RC_MODE_ACTIVE(BOXARM)) {
 #ifdef USE_RUNAWAY_TAKEOFF
                 unsetArmingDisabled(ARMING_DISABLED_RUNAWAY_TAKEOFF);
@@ -491,6 +492,10 @@ if (crashFlipModeActive) {
             } else if (!IS_RC_MODE_ACTIVE(BOXARM)) {
                 unsetArmingDisabled(ARMING_DISABLED_ARM_SWITCH);
             }
+        } else if (isMixerEqCar()) {
+            // BOXARM is synthesized from CAR throttle activity, so the normal
+            // "arm switch was already on" interlock does not apply.
+            unsetArmingDisabled(ARMING_DISABLED_ARM_SWITCH);
         }
 
         if (isArmingDisabled()) {
@@ -819,6 +824,8 @@ bool processRx(timeUs_t currentTimeUs)
 
     updateRcRefreshRate(currentTimeUs, isRxReceivingSignal());
 
+    carUpdateArmState(currentTimeUs);
+
     // in 3D mode, we need to be able to disarm by switch at any time
     if (featureIsEnabled(FEATURE_3D)) {
         if (!IS_RC_MODE_ACTIVE(BOXARM))
@@ -868,6 +875,7 @@ bool processRx(timeUs_t currentTimeUs)
     // prevention for the remainder of the battery.
 
     if (ARMING_FLAG(ARMED)
+        && !isMixerEqCar()
         && pidConfig()->runaway_takeoff_prevention
         && !runawayTakeoffCheckDisabled
         && !crashFlipModeActive
@@ -1348,6 +1356,7 @@ static FAST_CODE_NOINLINE_CRITICAL void subTaskPidController(timeUs_t currentTim
     // If so, disarm for safety
     if (ARMING_FLAG(ARMED)
         && !isFixedWing()
+        && !isMixerEqCar()
         && pidConfig()->runaway_takeoff_prevention
         && !runawayTakeoffCheckDisabled
         && !crashFlipModeActive

@@ -59,3 +59,25 @@ bool carUpdateDrivePermission(bool *permitted, bool rxValid, bool throttleNeutra
 
     return *permitted;
 }
+
+bool carUpdateArmRequest(carArmState_t *state, timeUs_t currentTimeUs, bool rxValid,
+    bool throttleNeutral, timeDelta_t idleDelayUs)
+{
+    if (!rxValid) {
+        state->requested = false;
+        state->neutralTimerActive = false;
+    } else if (!throttleNeutral) {
+        state->requested = true;
+        state->neutralTimerActive = false;
+    } else if (state->requested) {
+        if (!state->neutralTimerActive) {
+            state->neutralSince = currentTimeUs;
+            state->neutralTimerActive = true;
+        } else if (cmpTimeUs(currentTimeUs, state->neutralSince) >= idleDelayUs) {
+            state->requested = false;
+            state->neutralTimerActive = false;
+        }
+    }
+
+    return state->requested;
+}
